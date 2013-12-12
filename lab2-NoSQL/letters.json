@@ -1,0 +1,25 @@
+{
+	"_id":"_design/letters",
+	"language": "javascript",
+	"views":
+	{
+		"count": {
+			"map": "function(doc) {
+				for(a in doc) 
+				{
+					if(a == "_id" || a=="_rev") continue;
+					for(var i = 0; i<doc[a].length; i++) {
+						var letter = doc[a][i].toUpperCase();
+						if((letter >= 'A' && letter <='Z')) {
+							emit(letter, 1);
+						}
+					}
+				}
+			}",
+			"reduce": "function(keys, values) {
+				return sum(values) 
+			}"
+		}
+	}
+}
+
