@@ -1,0 +1,50 @@
+Laboratorium: transakcje w bazach relacyjnych
+
+Celem laboratorium jest zapoznanie się ze szczegółami mechanizmu izolacji transakcji w relacyjnych bazach danych na przykładzie PostgreSQL 9.1.
+
+Większość ćwiczeń zakłada, że równolegle trwają dwie transakcje, najwygodniej będzie więc przygotować dwa okienka terminala z uruchomionym klientem psql.
+Ćwiczenie 1: non-repeatable reads
+
+W tym ćwiczeniu proszę ustawić domyślny dla PostgreSQL poziom izolacji transakcji read committed. Proszę utworzyć prostą tabelę bazy danych o dowolnej tematyce i przygotować scenariusz, w którym jedna z transakcji wykonuje kilka razy pewną operację selekcji i baza wpada w stan niespójny w związku z tym, że dane zostały zmienione w drugiej równoległej transakcji.
+
+Scenariusz powinien być postaci ciągu zapytań z oznaczoną transakcją i komentarzami, np.:
+
+CREATE TABLE x (a integer, b integer);
+T1: BEGIN TRANSACTION ISOLATION LEVEL READ committed;
+T2: BEGIN TRANSACTION ISOLATION LEVEL READ committed;
+-- wstaw pierwszy wiersz do tabeli:
+T1: INSERT INTO x VALUES (1, 2);
+.....
+T1: COMMIT;
+-- tu zmieniliśmy dane, o która pytała druga transakcja
+T2: ROLLBACK;
+
+Ćwiczenie 2: Jawne blokowanie
+
+Korzystając z możliwości założenia blokady na wybrane obiekty bazy danych, zapewnij integralność przy scenariuszu z ćwiczenia 1, nie zmieniając poziomu izolacji transakcji.
+Ćwiczenie 3: Poziom repeatable read
+
+Powtórz scenariusz z ćwiczenia 1 (bez jawnego blokowania) przy poziomie izolacji ustawionym na repeatable read. Czy problem zniknął?
+Ćwiczenie 4: Implementacja MVCC w PostgreSQL
+
+PostgreSQL do izolacji transakcji wykorzystuje mechanizm multiversioning, oficjalnie zwany MVCC (Multi-Version Concurrency Control). Przypomnij sobie artykuł prezentowany na wykładzie, opisujący implementację MVCC w PostgreSQL.
+
+Uzupełnij scenariusz z ćwiczenia 3, dodając do niego operacje aktualizacji i usuwania danych. Wykonaj go, sprawdzając każdorazowo wartości xmin oraz xmax.
+Ćwiczenie 5: Błędy serializacji
+
+Spróbuj doprowadzić do błędu serializacji na poziomie izolacji repeatable read.
+
+Podpowiedź: błąd serializacji występuje, gdy inna (zatwierdzona już) transakcja zmodyfikowała dane podczas transakcji, która próbuje te dane dalej zmodyfikować.
+Ćwiczenie 6: blokowanie na poziomie rekordów
+
+Spróbuj doprowadzić do błędu serializacji, ale stosując mechanizm blokowania na poziomie rekordów (SELECT FOR UPDATE/SELECT FOR SHARE).
+Ćwiczenie 7: prawdziwa serializacja
+
+Mimo tego, że poziom repeatable read spełnia wymagania stawiane przez standard SQL poziomowi serializable (tzn. nie dopuszcza do powstawania żadnej z trzech klas anomialii), w pewnych sytuacjach nie spełnia on definicji słowa serializable, a więc efekty działania równoległych transakcji nie będą identyczne z sytuacją, gdyby transakcje te były wykonywane sekwencyjnie.
+
+Dzieje się tak w sytuacjach tzw. skrzywienia zapisu (ang. write skew). Mają one miejsce gdy dwie transakcje najpierw pobierają pewne dane z bazy (wykonują operację selekcji) w celu ich przetworzenia i zapisania z powrotem, przy czym wynik przetworzenia danych w pierwszej transakcji wpłynąłby na wynik operacji selekcji w transakcji drugiej i vice versa.
+
+Zaprojektuj scenariusz, w którym dwie równoległe transakcje przeprowadzają operacje, których wyniki byłyby inne w przypadku uruchomienia sekwencyjnego.
+
+Następnie zmień poziom izolacji transakcji na serializable i sprawdź, czy próba wykonania scenariusza zakończy się błędem.
+
